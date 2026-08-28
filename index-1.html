@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1A17">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Ibrahimi Salawat — 70,000</title>
+<style>
+  :root{
+    --ink:#0B1A17;
+    --ground:#10241F;
+    --raise:#16302A;
+    --ivory:#EFE8D8;
+    --muted:#8FA79C;
+    --gold:#C6A35B;
+    --gold-dim:#5E5030;
+    --line:#1E3A33;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{
+    background:var(--ink);
+    color:var(--ivory);
+    font-family:-apple-system,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+    overflow:hidden;
+    user-select:none;-webkit-user-select:none;
+    touch-action:manipulation;
+    display:flex;flex-direction:column;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* ---------- tap surface ---------- */
+  #tap{
+    flex:1;
+    display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+    padding:18px 16px 8px;
+    position:relative;overflow:hidden;
+    cursor:pointer;
+    background:
+      radial-gradient(120% 60% at 50% 0%, var(--ground) 0%, var(--ink) 70%);
+  }
+
+  .eyebrow{
+    font-size:.68rem;letter-spacing:.24em;text-transform:uppercase;color:var(--gold);
+    opacity:.85;text-align:center;
+  }
+  .eyebrow::after{
+    content:"";display:block;width:26px;height:1px;margin:9px auto 0;
+    background:var(--gold);opacity:.45;
+  }
+
+  /* ---------- hero: the salawat ---------- */
+  .salawat{
+    font-family:"Noto Naskh Arabic","Traditional Arabic","Amiri","Scheherazade New",serif;
+    text-align:center;
+    font-size:1.5rem;
+    line-height:2.15;
+    color:var(--ivory);
+    max-width:34ch;
+    text-shadow:0 1px 0 rgba(0,0,0,.4);
+  }
+  .salawat p + p{margin-top:.7em}
+
+  /* ---------- misbaha: 33 beads ---------- */
+  .beads{
+    display:flex;justify-content:center;align-items:center;
+    gap:3px;flex-wrap:nowrap;width:100%;margin:2px 0 4px;
+  }
+  .bead{
+    width:5px;height:5px;border-radius:50%;
+    background:var(--line);
+    flex:0 0 auto;
+    transition:background .18s ease, transform .18s ease;
+  }
+  .bead.on{background:var(--gold);transform:scale(1.25)}
+  .bead.knot{width:7px;height:7px;background:var(--gold-dim)}
+
+  /* ---------- count ---------- */
+  .count{
+    text-align:center;
+  }
+  .num{
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    font-variant-numeric:tabular-nums;
+    font-size:3.1rem;line-height:1;
+    color:var(--gold);
+    letter-spacing:-.01em;
+    transition:opacity .12s ease;
+  }
+  .num.pulse{opacity:.55}
+  .label{
+    margin-top:7px;font-size:.7rem;letter-spacing:.14em;color:var(--muted);
+  }
+
+  /* ---------- progress ---------- */
+  .progwrap{width:100%;max-width:340px}
+  .track{height:1px;background:var(--line);position:relative;overflow:hidden}
+  .fill{position:absolute;inset:0 auto 0 0;width:0;background:var(--gold);transition:width .3s ease}
+  .stats{
+    display:flex;justify-content:space-between;
+    margin-top:7px;font-size:.62rem;color:var(--muted);letter-spacing:.05em;gap:8px;
+  }
+
+  /* ---------- footer ---------- */
+  footer{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:10px;padding:11px 16px calc(11px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);
+    background:var(--ink);
+  }
+  button{
+    font-family:inherit;font-size:.78rem;
+    background:transparent;border:1px solid var(--line);
+    color:var(--muted);border-radius:2px;
+    padding:9px 16px;cursor:pointer;
+    transition:color .15s,border-color .15s;
+  }
+  button:active{color:var(--ivory);border-color:var(--gold)}
+  button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+  #reset.armed{color:var(--gold);border-color:var(--gold)}
+  #vib.off{opacity:.45}
+
+  /* ---------- ripple ---------- */
+  .ripple{
+    position:absolute;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle,rgba(198,163,91,.30) 0%,rgba(198,163,91,0) 68%);
+    transform:translate(-50%,-50%) scale(0);
+    animation:bloom .55s ease-out forwards;
+  }
+  @keyframes bloom{to{transform:translate(-50%,-50%) scale(1);opacity:0}}
+
+  /* ---------- done ---------- */
+  .done .num{font-size:2.2rem;font-family:inherit}
+  .done .beads{opacity:.25}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+  @media (max-height:680px){
+    .salawat{font-size:1.26rem;line-height:2}
+    .num{font-size:2.6rem}
+  }
+</style>
+</head>
+<body>
+
+<div id="tap">
+
+  <div class="eyebrow">Ibrahimi Salawat</div>
+
+  <div>
+    <div class="salawat" lang="ar" dir="rtl">
+      <p>اللَّهُمَّ صَلِّ عَلَى سَيِّدِنَا مُحَمَّدٍ وَعَلَى آلِ سَيِّدِنَا مُحَمَّدٍ كَمَا صَلَّيْتَ عَلَى إِبْرَاهِيمَ وَعَلَى آلِ إِبْرَاهِيمَ وَبَارِكْ عَلَى سَيِّدِنَا مُحَمَّدٍ وَعَلَى آلِ سَيِّدِنَا مُحَمَّدٍ كَمَا بَارَكْتَ عَلَى إِبْرَاهِيمَ وَعَلَى آلِ إِبْرَاهِيمَ فِي الْعَالَمِينَ إِنَّكَ حَمِيدٌ مَجِيدٌ</p>
+    </div>
+  </div>
+
+  <div class="beads" id="beads"></div>
+
+  <div class="count">
+    <div class="num" id="num">70,000</div>
+    <div class="label" id="label">Remaining</div>
+  </div>
+
+  <div class="progwrap">
+    <div class="track"><div class="fill" id="fill"></div></div>
+    <div class="stats">
+      <span id="doneTxt">0 completed</span>
+      <span id="session">This session 0</span>
+      <span id="pctTxt">0.00%</span>
+    </div>
+  </div>
+
+</div>
+
+<footer>
+  <button id="undo">Undo</button>
+  <button id="vib">Vibration on</button>
+  <button id="reset">Reset</button>
+</footer>
+
+<script>
+(function(){
+  var TARGET = 70000, KEY = 'tasbeeh_ibrahimi_v1', VIBKEY = 'tasbeeh_vibrate';
+
+  var mem = null;
+  function load(){
+    try{
+      if(window.Android && typeof Android.load==='function'){
+        var a = Android.load();
+        if(a>=0) return Math.max(0, Math.min(TARGET, a));
+      }
+    }catch(e){}
+    try{
+      var r = localStorage.getItem(KEY);
+      if(r!==null) return Math.max(0, Math.min(TARGET, parseInt(r,10)||0));
+    }catch(e){}
+    return mem===null ? TARGET : mem;
+  }
+  function save(v){
+    mem = v;
+    try{ if(window.Android && typeof Android.save==='function') Android.save(v); }catch(e){}
+    try{ localStorage.setItem(KEY, String(v)); }catch(e){}
+  }
+
+  var vibrateOn = true;
+  try{ vibrateOn = localStorage.getItem(VIBKEY) !== '0'; }catch(e){}
+
+  var remaining = load(), session = 0, lastRemaining = null;
+
+  var tap=document.getElementById('tap'), numEl=document.getElementById('num'),
+      labelEl=document.getElementById('label'), fillEl=document.getElementById('fill'),
+      doneEl=document.getElementById('doneTxt'), pctEl=document.getElementById('pctTxt'),
+      sessEl=document.getElementById('session'), beadsEl=document.getElementById('beads'),
+      undoBtn=document.getElementById('undo'), resetBtn=document.getElementById('reset'),
+      vibBtn=document.getElementById('vib');
+
+  // build the 33-bead strand of a misbaha
+  var beads=[];
+  for(var i=0;i<33;i++){
+    var b=document.createElement('span');
+    b.className='bead'+((i===10||i===21)?' knot':'');
+    beadsEl.appendChild(b); beads.push(b);
+  }
+
+  function buzz(p){
+    if(!vibrateOn || !navigator.vibrate) return;
+    try{ navigator.vibrate(p); }catch(e){}
+  }
+
+  function render(){
+    var done = TARGET - remaining;
+    numEl.textContent = remaining===0 ? 'Complete' : remaining.toLocaleString('en-US');
+    labelEl.textContent = remaining===0 ? 'All 70,000 recited' : 'Remaining';
+    document.body.classList.toggle('done', remaining===0);
+    fillEl.style.width = (done/TARGET*100)+'%';
+    doneEl.textContent = done.toLocaleString('en-US')+' completed';
+    pctEl.textContent = (done/TARGET*100).toFixed(2)+'%';
+    sessEl.textContent = 'This session '+session;
+    var pos = done % 33;
+    for(var i=0;i<33;i++) beads[i].classList.toggle('on', i < (pos===0 && done>0 ? 33 : pos));
+    vibBtn.textContent = vibrateOn ? 'Vibration on' : 'Vibration off';
+    vibBtn.classList.toggle('off', !vibrateOn);
+    undoBtn.disabled = (lastRemaining===null);
+    undoBtn.style.opacity = lastRemaining===null ? .4 : 1;
+  }
+
+  function ripple(x,y){
+    if(window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    var r=document.createElement('span');
+    r.className='ripple';
+    var s=Math.max(window.innerWidth,window.innerHeight)*0.8;
+    r.style.width=r.style.height=s+'px';
+    r.style.left=x+'px'; r.style.top=y+'px';
+    tap.appendChild(r);
+    setTimeout(function(){ r.remove(); },560);
+  }
+
+  function count(x,y){
+    if(remaining===0){ buzz(8); return; }
+    lastRemaining = remaining;
+    remaining--; session++;
+    save(remaining);
+    var done = TARGET - remaining;
+    if(remaining===0)      buzz([60,50,60,50,180]);
+    else if(done%1000===0) buzz([40,40,40,40,120]);
+    else if(done%100===0)  buzz([30,45,30]);
+    else if(done%33===0)   buzz(45);
+    else                   buzz(12);
+    numEl.classList.add('pulse');
+    setTimeout(function(){ numEl.classList.remove('pulse'); },110);
+    ripple(x,y);
+    render();
+    keepAwake();
+  }
+
+  tap.addEventListener('pointerdown', function(e){
+    count(e.clientX, e.clientY);
+  });
+
+  undoBtn.addEventListener('click', function(){
+    if(lastRemaining===null) return;
+    remaining = lastRemaining; lastRemaining = null;
+    if(session>0) session--;
+    save(remaining); render(); buzz(20);
+  });
+
+  vibBtn.addEventListener('click', function(){
+    vibrateOn = !vibrateOn;
+    try{ localStorage.setItem(VIBKEY, vibrateOn ? '1' : '0'); }catch(e){}
+    render();
+    buzz(25);
+  });
+
+  var armed=null;
+  resetBtn.addEventListener('click', function(){
+    if(armed){
+      clearTimeout(armed); armed=null;
+      resetBtn.classList.remove('armed');
+      resetBtn.textContent='Reset';
+      remaining=TARGET; session=0; lastRemaining=null;
+      save(remaining); render(); buzz([30,60,30]);
+    } else {
+      resetBtn.classList.add('armed');
+      resetBtn.textContent='Confirm';
+      armed=setTimeout(function(){
+        armed=null;
+        resetBtn.classList.remove('armed');
+        resetBtn.textContent='Reset';
+      },4000);
+    }
+  });
+
+  // keep the screen on while counting
+  var lock=null;
+  function keepAwake(){
+    if(lock || !('wakeLock' in navigator)) return;
+    navigator.wakeLock.request('screen').then(function(l){
+      lock=l; l.addEventListener('release', function(){ lock=null; });
+    }).catch(function(){});
+  }
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState==='visible'){ remaining=load(); render(); }
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
