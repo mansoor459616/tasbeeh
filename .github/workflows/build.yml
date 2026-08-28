@@ -1,0 +1,315 @@
+name: Build Tasbeeh APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get the repository files
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Create a permanent signing key (first run only)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          if [ ! -f keystore.jks ]; then
+            keytool -genkeypair -v \
+              -keystore keystore.jks \
+              -alias tasbeeh \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -storepass tasbeeh -keypass tasbeeh \
+              -dname "CN=Tasbeeh, O=Personal, C=AE"
+            git config user.name "github-actions"
+            git config user.email "actions@github.com"
+            git add keystore.jks
+            git commit -m "Add signing key [skip ci]"
+            git push
+            echo "Signing key created and saved to the repository."
+          else
+            echo "Signing key already exists, reusing it."
+          fi
+
+      - name: Set up the Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK packages
+        run: sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Create the Android project
+        run: |
+          set -e
+          mkdir -p app/src/main/java/com/mansoor/tasbeeh
+          mkdir -p app/src/main/assets
+          mkdir -p app/src/main/res/values
+          mkdir -p app/src/main/res/drawable
+          mkdir -p app/src/main/res/mipmap-anydpi-v26
+
+          cp index.html app/src/main/assets/index.html
+
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "Tasbeeh"
+          include ':app'
+          EOF
+
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.5.2' apply false
+          }
+          EOF
+
+          cat > gradle.properties <<'EOF'
+          org.gradle.jvmargs=-Xmx2048m
+          android.useAndroidX=false
+          EOF
+
+          cat > app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.mansoor.tasbeeh'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId "com.mansoor.tasbeeh"
+                  minSdk 26
+                  targetSdk 34
+                  versionCode ((System.getenv("BUILD_NUMBER") ?: "1") as Integer)
+                  versionName "1." + (System.getenv("BUILD_NUMBER") ?: "0")
+              }
+
+              signingConfigs {
+                  release {
+                      storeFile file("../keystore.jks")
+                      storePassword "tasbeeh"
+                      keyAlias "tasbeeh"
+                      keyPassword "tasbeeh"
+                  }
+              }
+
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                      minifyEnabled false
+                  }
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <uses-permission android:name="android.permission.VIBRATE" />
+
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:roundIcon="@mipmap/ic_launcher"
+                  android:label="@string/app_name"
+                  android:theme="@style/AppTheme"
+                  android:hardwareAccelerated="true">
+
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:screenOrientation="portrait"
+                      android:configChanges="keyboardHidden|orientation|screenSize|uiMode">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/java/com/mansoor/tasbeeh/MainActivity.java <<'EOF'
+          package com.mansoor.tasbeeh;
+
+          import android.app.Activity;
+          import android.content.Context;
+          import android.content.SharedPreferences;
+          import android.graphics.Color;
+          import android.os.Bundle;
+          import android.view.View;
+          import android.view.WindowManager;
+          import android.webkit.JavascriptInterface;
+          import android.webkit.WebSettings;
+          import android.webkit.WebView;
+          import android.webkit.WebViewClient;
+
+          public class MainActivity extends Activity {
+
+              private WebView web;
+
+              /** Keeps the count in app storage, so it survives updates and restarts. */
+              public static class Store {
+                  private final SharedPreferences prefs;
+
+                  Store(Context c) {
+                      prefs = c.getSharedPreferences("tasbeeh", Context.MODE_PRIVATE);
+                  }
+
+                  @JavascriptInterface
+                  public int load() {
+                      return prefs.getInt("remaining", -1);
+                  }
+
+                  @JavascriptInterface
+                  public void save(int value) {
+                      prefs.edit().putInt("remaining", value).apply();
+                  }
+              }
+
+              @Override
+              protected void onCreate(Bundle state) {
+                  super.onCreate(state);
+
+                  getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+                  web = new WebView(this);
+                  web.setBackgroundColor(Color.parseColor("#0B1A17"));
+                  web.setOverScrollMode(View.OVER_SCROLL_NEVER);
+                  web.setWebViewClient(new WebViewClient());
+
+                  WebSettings s = web.getSettings();
+                  s.setJavaScriptEnabled(true);
+                  s.setDomStorageEnabled(true);
+                  s.setDatabaseEnabled(true);
+                  s.setAllowFileAccess(true);
+                  s.setTextZoom(100);
+                  s.setSupportZoom(false);
+                  s.setBuiltInZoomControls(false);
+
+                  web.addJavascriptInterface(new Store(this), "Android");
+                  web.loadUrl("file:///android_asset/index.html");
+
+                  setContentView(web);
+              }
+
+              @Override
+              public void onBackPressed() {
+                  finish();
+              }
+          }
+          EOF
+
+          cat > app/src/main/res/values/strings.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="app_name">صلاة</string>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/values/colors.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <color name="ink">#0B1A17</color>
+              <color name="gold">#C6A35B</color>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/values/themes.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="AppTheme" parent="@android:style/Theme.Material.NoActionBar">
+                  <item name="android:windowBackground">@color/ink</item>
+                  <item name="android:statusBarColor">@color/ink</item>
+                  <item name="android:navigationBarColor">@color/ink</item>
+              </style>
+          </resources>
+          EOF
+
+          cat > app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+              <background android:drawable="@color/ink" />
+              <foreground android:drawable="@drawable/ic_launcher_foreground" />
+          </adaptive-icon>
+          EOF
+
+          cat > app/src/main/res/drawable/ic_launcher_foreground.xml <<'EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android"
+              android:width="108dp"
+              android:height="108dp"
+              android:viewportWidth="108"
+              android:viewportHeight="108">
+
+              <path android:fillColor="#C6A35B" android:pathData="M54,30 m-6,0 a6,6 0 1,0 12,0 a6,6 0 1,0 -12,0" />
+              <path android:fillColor="#C6A35B" android:pathData="M66,33.2 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+              <path android:fillColor="#C6A35B" android:pathData="M74.8,42 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+              <path android:fillColor="#C6A35B" android:pathData="M78,54 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+              <path android:fillColor="#C6A35B" android:pathData="M74.8,66 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+              <path android:fillColor="#C6A35B" android:pathData="M66,74.8 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+              <path android:fillColor="#C6A35B" android:pathData="M54,78 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+              <path android:fillColor="#C6A35B" android:pathData="M42,74.8 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+              <path android:fillColor="#C6A35B" android:pathData="M33.2,66 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+              <path android:fillColor="#C6A35B" android:pathData="M30,54 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+              <path android:fillColor="#C6A35B" android:pathData="M33.2,42 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+              <path android:fillColor="#C6A35B" android:pathData="M42,33.2 m-3.6,0 a3.6,3.6 0 1,0 7.2,0 a3.6,3.6 0 1,0 -7.2,0" />
+          </vector>
+          EOF
+
+      - name: Build the APK
+        env:
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: gradle assembleRelease --no-daemon --stacktrace
+
+      - name: Rename the APK
+        run: cp app/build/outputs/apk/release/app-release.apk tasbeeh.apk
+
+      - name: Publish the APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "build-${{ github.run_number }}" tasbeeh.apk \
+            --title "Tasbeeh build ${{ github.run_number }}" \
+            --notes "Download tasbeeh.apk below and open it on your phone. Installs over the previous version and keeps your count."
+
+      - name: Also attach the APK to this run
+        uses: actions/upload-artifact@v4
+        with:
+          name: tasbeeh-apk
+          path: tasbeeh.apk
